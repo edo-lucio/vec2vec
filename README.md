@@ -24,6 +24,9 @@ python train.py [EXPERIMENT_NAME] --num_points [NUMBER OF POINTS] --epochs [EPOC
 
 Most of the experiments in the paper use `configs/unsupervised.toml`.
 
+> [!NOTE]
+> GAN training is *very* unstable (especially across backbones!) You may need to try multiple seeds for convergence!
+
 ### Command Line Arguments
 
 Each entry in the toml configuration can be altered in two ways: (1) by directly changing the configuration file, or (2) adding a flag to the run command above.
@@ -43,6 +46,8 @@ The `train.py` script with accepts various parameters, including:
 
 Please refer to the example `.toml` files for all possible settings (there are a lot!).
 
+## Model Release
+We are releasing the trained weights of the models used in the paper [here](https://github.com/rjha18/vec2vec/releases/tag/v1.0.0). To use the trained weights, use `translator.load_state_dict()`. For an example on usage, please refer to `eval.py`.
 
 ## The Paper
 Our paper is available on ArXiv: [Harnessing the Universal Geometry of Embeddings](https://arxiv.org/abs/2505.12540) (Jha, Zhang, Shmatikov, and Morris, 2025). If you find the code useful, please use the following citation:
