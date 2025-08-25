@@ -7,10 +7,8 @@ from types import SimpleNamespace
 import accelerate
 
 import numpy as np
-import pandas as pd
 import torch
 
-# from eval import eval_model
 from utils.collate import MultiEncoderClassificationDataset, TokenizedCollator
 from utils.dist import get_rank
 from utils.model_utils import get_sentence_embedding_dimension, load_encoder
@@ -20,7 +18,6 @@ from utils.streaming_utils import process_batch
 from datasets import load_dataset
 import re
 import pickle
-
 
 
 def preprocess_email(text: str, max_tokens=32) -> str:
@@ -62,6 +59,30 @@ def preprocess_email(text: str, max_tokens=32) -> str:
     result = result.replace(placeholder, '\n')
     return result.strip()
 
+
+# preprocess tweets
+def preprocess_tweet(text: str) -> str:
+    # remove emojis (comprehensive Unicode emoji blocks)
+    emoji_pattern = re.compile(
+        "["
+        "\U0001F1E0-\U0001F1FF"  # flags (iOS)
+        "\U0001F300-\U0001F5FF"  # symbols & pictographs
+        "\U0001F600-\U0001F64F"  # emoticons
+        "\U0001F680-\U0001F6FF"  # transport & map symbols
+        "\U0001F700-\U0001F77F"  # alchemical symbols
+        "\U0001F780-\U0001F7FF"  # Geometric Shapes Extended
+        "\U0001F800-\U0001F8FF"  # Supplemental Arrows-C
+        "\U0001F900-\U0001F9FF"  # Supplemental Symbols and Pictographs
+        "\U0001FA00-\U0001FA6F"  # Chess Symbols
+        "\U0001FA70-\U0001FAFF"  # Symbols and Pictographs Extended-A
+        "\U00002702-\U000027B0"  # Dingbats
+        "\U000024C2-\U0001F251"  # Enclosed characters
+        "]+"
+    )
+    text = emoji_pattern.sub('', text)
+    # remove urls
+    text = re.sub(r'https?://\S+', '', text)
+    return text
 
 
 def main():
@@ -110,7 +131,13 @@ def main():
 
     ### Tweets
     # dset = load_dataset('cardiffnlp/tweet_topic_multilingual', 'en', num_proc=8)['test']
-    dset = load_dataset('rishi-jha/filtered_enron', split='train', num_proc=8).shuffle(seed=cfg.val_dataset_seed).select(range(128))
+    if cfg.dataset == 'enron':
+        dset = load_dataset('rishi-jha/filtered_enron', split='train', num_proc=8).shuffle(seed=cfg.val_dataset_seed).select(range(128))
+    elif cfg.dataset == 'nq':
+        dset = load_dataset('jxm/nq_corpus_dpr', split='train', num_proc=8).shuffle(seed=cfg.val_dataset_seed).select(range(128))
+    elif cfg.dataset == 'tweets':
+        dset = load_dataset('cardiffnlp/tweet_topic_multilingual', 'en', num_proc=8)['test'].shuffle(seed=cfg.val_dataset_seed).select(range(128))
+
     num_workers = get_num_proc()
 
     dset = MultiEncoderClassificationDataset(
@@ -150,14 +177,17 @@ def main():
             embs = {}
             embs[f'{cfg.unsup_emb}->{cfg.sup_emb}'] = translations[cfg.sup_emb][cfg.unsup_emb]
             embs[f'{cfg.sup_emb}->{cfg.unsup_emb}'] = translations[cfg.unsup_emb][cfg.sup_emb]
-            embs[f'text'] = [preprocess_email(x) for x in batch[f'text']]
+            
+            if cfg.dataset == 'enron':
+                embs[f'text'] = [preprocess_email(x) for x in batch[f'text']]
+            else:
+                embs[f'text'] = [preprocess_tweet(x) for x in batch[f'text']]
 
             with open('sample.txt', 'w') as fout:
                 for rec in embs[f'text']:
                     fout.write(rec + '\n\n')
 
-
-            with open(f'pkls_new_body/{cfg.unsup_emb}_{cfg.sup_emb}.pkl', 'wb') as f:
+            with open(f'pkls/{cfg.unsup_emb}_{cfg.sup_emb}.pkl', 'wb') as f:
                 pickle.dump(embs, f)
             exit()
 
