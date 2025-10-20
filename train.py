@@ -249,7 +249,7 @@ def main():
         save_dir = cfg.save_dir.format(cfg.wandb_name)
     else:
         cfg.wandb_name = ','.join([f"{k[0]}:{v}" for k, v in unknown_cfg.items()]) if unknown_cfg else cfg.wandb_name
-        save_dir = cfg.save_dir.format(cfg.latent_dims if hasattr(cfg, 'latent_dims') else cfg.wandb_name)
+        save_dir = cfg.save_dir.format(f"{cfg.sup_emb}-{cfg.unsup_emb}")
 
     logger = Logger(
         project=cfg.wandb_project,
@@ -260,10 +260,13 @@ def main():
 
     print("Running Experiment:", cfg.wandb_name)
 
-
+    ## - load the encoding model
+    ## - cfg.sub_emb is the model's name
+    ## - load_encoder loads the actual model => get the encoder's embeddings dimension => 
     sup_encs = {
         cfg.sup_emb: load_encoder(cfg.sup_emb, mixed_precision=cfg.mixed_precision if hasattr(cfg, 'mixed_precision') else None)
     }
+
     encoder_dims = {
         cfg.sup_emb: get_sentence_embedding_dimension(sup_encs[cfg.sup_emb])
     }

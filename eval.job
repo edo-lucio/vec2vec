@@ -1,0 +1,12 @@
+#!/bin/bash
+
+#SBATCH --job-name=simple        # Job name
+#SBATCH --output=job.%j.out      # Name of output file (%j expands to jobId)
+#SBATCH --cpus-per-task=1        # Schedule one core
+#SBATCH --time=01:00:00          # Run time (hh:mm:ss) - run for one hour max
+#SBATCH --partition=acltr    # Run on scavenge queue (all nodes, low priority)
+
+apptainer exec --nv -B /home/edlu/vec2vec/:/v2v local_tar.sif bash -c "
+    source /opt/conda/etc/profile.d/conda.sh
+    conda activate vec
+    python /v2v/eval.py configs/gist-stella

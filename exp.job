@@ -1,0 +1,50 @@
+#!/bin/bash
+#SBATCH --job-name=vec2vec_all
+#SBATCH --output=logs/%A_%a.out
+#SBATCH --cpus-per-task=1
+#SBATCH --ntasks=1
+#SBATCH --time=24:00:00
+#SBATCH --array=0-35%6
+#SBATCH --nodes=1
+#SBATCH --gres=gpu:a30:4
+#SBATCH --constraint=arch_zen
+#SBATCH --partition=acltr
+#SBATCH --exclusive
+
+nvidia-smi 
+
+models=(
+    "granite"
+    "gtr"
+    "gte"
+    "stella"
+    "e5"
+    "clip"
+)
+
+num_models=${#models[@]}
+sup_idx=$(( SLURM_ARRAY_TASK_ID / num_models ))
+unsup_idx=$(( SLURM_ARRAY_TASK_ID % num_models ))
+
+if [ "$sup_idx" -eq "$unsup_idx" ]; then
+    echo "Skipping identical pair ${models[$sup_idx]} vs ${models[$unsup_idx]}"
+    exit 0
+fi
+
+sup=${models[$sup_idx]}
+unsup=${models[$unsup_idx]}
+
+echo "=== Running on GPU: sup_emb=$sup | unsup_emb=$unsup ==="
+
+# Optional: enforce consistent GPU power limit (requires permission)
+nvidia-smi -pl 250 || echo "Warning: unable to set GPU power limit"
+
+apptainer exec --nv -B /home/edlu/vec2vec/:/v2v local_tar.sif bash -c "
+    source /opt/conda/etc/profile.d/conda.sh
+    conda activate vec
+    python /v2v/train.py unsupervised \
+        --epochs 100 \
+        --num_points 1000000 \
+        --sup_emb $sup \
+        --unsup_emb $unsup
+"
