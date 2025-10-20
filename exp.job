@@ -8,7 +8,7 @@
 #SBATCH --nodes=1
 #SBATCH --gres=gpu:a30:4
 #SBATCH --constraint=arch_zen
-#SBATCH --partition=acltr
+#SBATCH --partition=scavenge
 #SBATCH --exclusive
 
 nvidia-smi 
