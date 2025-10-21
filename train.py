@@ -67,6 +67,7 @@ def training_loop_(
             break
         with accelerator.accumulate(translator), accelerator.autocast():
             assert len(set(sup_batch.keys()).intersection(unsup_batch.keys())) == 0
+
             ins = {
                 **process_batch(sup_batch, sup_encs, cfg.normalize_embeddings, device), 
                 **process_batch(unsup_batch, unsup_enc, cfg.normalize_embeddings, device)

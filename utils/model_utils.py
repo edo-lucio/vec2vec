@@ -2,7 +2,7 @@ from typing import Optional
 
 import torch
 from sentence_transformers import SentenceTransformer, models
-
+from utils.st_wrapper import AudioSentenceTransformer
 
 MODEL_PATH = '/private/home/jxm/supervised_translation/model_weights/'
 # MODEL_PATH = "/home/rishi/code/data/model_weights/"
@@ -26,8 +26,8 @@ HF_FLAGS = {
     'modernbert-large': 'answerdotai/ModernBERT-large',
     'nomicbert': 'nomic-ai/nomic-bert-2048',
     'qwen': 'Qwen/Qwen3-Embedding-0.6B',
+    'clap': 'laion/clap-htsat-unfused',  
 }
-
 
 def load_encoder(model_flag, device: str = 'cpu', mixed_precision: Optional[str] = None):
     f = HF_FLAGS.get(model_flag, model_flag)
@@ -58,6 +58,8 @@ def load_encoder(model_flag, device: str = 'cpu', mixed_precision: Optional[str]
         else:
             raise ValueError(f"Unknown gpt-2 model {model_flag}")
         encoder = SentenceTransformer(modules=[transformer, pooling, normalize])
+    elif model_flag.startswith("clap"):
+        encoder = AudioSentenceTransformer(f)
     else:
         encoder = SentenceTransformer(f, device=device, trust_remote_code=True, model_kwargs=model_kwargs)
     return encoder.eval()
