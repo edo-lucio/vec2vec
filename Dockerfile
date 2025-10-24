@@ -1,10 +1,14 @@
-FROM continuumio/miniconda3
+FROM mambaorg/micromamba:1.5.8
 
 WORKDIR /app
 
-# Create the environment:
 COPY environment.yml .
-RUN conda env create -f environment.yml
 
-# Make RUN commands use the new environment:
-SHELL ["conda", "run", "-n", "vec", "/bin/bash", "-c"]
+# Create env named vec (or whatever your env name is in environment.yml)
+RUN micromamba create -y -n vec -f environment.yml && \
+    micromamba clean --all --yes
+
+# Run as non-root user (recommended)
+USER $MAMBA_USER
+
+CMD ["micromamba", "run", "-n", "vec", "python", "main.py"]
