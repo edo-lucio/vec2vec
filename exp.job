@@ -40,8 +40,8 @@ echo "=== Running on GPU: sup_emb=$sup | unsup_emb=$unsup ==="
 nvidia-smi -pl 250 || echo "Warning: unable to set GPU power limit"
 
 apptainer exec --nv -B /home/edlu/vec2vec/:/v2v local_tar.sif bash -c "
-    source /opt/conda/etc/profile.d/conda.sh
-    conda activate vec
+    source /opt/conda/etc/profile.d/mamba.sh
+    mamba activate vec
     python /v2v/train.py unsupervised \
         --epochs 100 \
         --num_points 1000000 \

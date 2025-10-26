@@ -7,5 +7,5 @@
 #SBATCH --mem-per-cpu=16G
 #SBATCH --time=12:00:00
 
-apptainer build local_tar.sif docker-archive://local.tar
+apptainer build vec.sif docker-archive://vec.tar
 
