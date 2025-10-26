@@ -164,7 +164,9 @@ def main():
         fnm = f'results/{cfg.dataset.replace("/", "_")}_{cfg.sup_emb}_{cfg.unsup_emb}_ood.json'
     else:
         fnm = f'results/{cfg.dataset.replace("/", "_")}_{cfg.unsup_emb}_{cfg.sup_emb}.json'
-    with open(fnm, 'w') as f:
+
+    os.makedirs(os.path.dirname(fnm), exist_ok=True)
+    with open(fnm, 'w+') as f:
         # human readable
         f.write(json.dumps(val_res, indent=4))
 
