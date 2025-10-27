@@ -1,10 +1,8 @@
 #!/bin/bash
 #SBATCH --job-name=vec2vec
-#SBATCH --output=logs/%A_%a.out
-#SBATCH --time=3-00:00:00
-#SBATCH --array=0-6%6
-#SBATCH --gres=gpu:v100:1         
-#SBATCH --partition=acltr
+#SBATCH --array=0-1%1
+#SBATCH --gres=gpu        
+#SBATCH --partition=scavenge
 
 nvidia-smi 
 
@@ -24,10 +22,12 @@ model=${models[$unsup_idx]}
 sup=$clap_model
 
 apptainer exec --nv -B /home/edlu/vec2vec/:/v2v vec.sif bash -c "
-    export $WANDB_TOKEN
+    export WANDB_DISABLE_SSL_VERIFY=true
+    export WANDB_TOKEN=$WANDB_TOKEN
+    micromamba run -n vec wandb login $WANDB_TOKEN
     micromamba run -n vec python -s /v2v/train.py unsupervised \
-        --epochs 100 \
+        --epochs 69 \
         --num_points 1000000 \
-        --sup_emb $model \
+        --sup_emb $model\
         --unsup_emb $clap_model
 "

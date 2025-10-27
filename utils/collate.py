@@ -93,6 +93,7 @@ class MultiencoderTokenizedDataset(torch.utils.data.Dataset):
         ex_text = ex_text[:_max_num_chars]
         output = {}
         for tok_name in tok_names:
+            # here tokenizes the text
             tt = self.tokenizers[tok_name](
                 ex_text,
                 truncation=True,

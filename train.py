@@ -222,7 +222,12 @@ def training_loop_(
 
 def main():
     os.environ["TOKENIZERS_PARALLELISM"] = "0"
-    cfg = toml.load(f'configs/{argv[1]}.toml')
+    # ssl certificate 
+    os.environ['SSL_CERT_DIR'] = '/etc/ssl/certs'
+    os.environ['REQUESTS_CA_BUNDLE'] = '/etc/ssl/certs/ca-certificates.crt'
+    
+    # read configs
+    cfg = toml.load(f'configs/{argv[1]}.toml') 
     unknown_cfg = read_args(argv)
     cfg = SimpleNamespace(**{**{k: v for d in cfg.values() for k, v in d.items()}, **unknown_cfg})
 
@@ -254,14 +259,14 @@ def main():
 
     logger = Logger(
         project=cfg.wandb_project,
-        name=cfg.wandb_name,
+        name=f"{cfg.wandb_name}-{cfg.sup_emb}{cfg.unsup_emb}",
         dummy=(cfg.wandb_project is None) or not (cfg.use_wandb),
         config=cfg,
     )
 
     print("Running Experiment:", cfg.wandb_name)
 
-
+    ## LOAD EMBEDDINGS
     sup_encs = {
         cfg.sup_emb: load_encoder(cfg.sup_emb, mixed_precision=cfg.mixed_precision if hasattr(cfg, 'mixed_precision') else None)
     }
@@ -289,6 +294,7 @@ def main():
     assert cfg.unsup_emb not in sup_encs
     assert cfg.unsup_emb in translator.in_adapters
     assert cfg.unsup_emb in translator.out_adapters
+    ## END LOAD EMBEDDINGS
 
     cfg.num_params = sum(x.numel() for x in translator.parameters())
     print("Number of parameters:", cfg.num_params)
@@ -303,10 +309,15 @@ def main():
     )
 
     num_workers = min(get_num_proc(), 8)
+    ## LOAD DATASET EMBEDDINGS
     if cfg.dataset != 'mimic':
+
+        ## NOTE:  the following load_streaming_embedding function doesnt actually load embeddings
+        ##        but just the dataset in a torch compatible format
         dset = load_streaming_embeddings(cfg.dataset)
         print(f"Using {num_workers} workers and {len(dset)} datapoints")
 
+        ## TRAIN/TEST SPLIT
         dset_dict = dset.train_test_split(test_size=cfg.val_size, seed=cfg.val_dataset_seed)
         dset = dset_dict["train"]
         valset = dset_dict["test"]
@@ -331,6 +342,7 @@ def main():
         valset = valset.remove_columns([col for col in valset.column_names if col != 'text'])
         
 
+    ## COLLATE 
     supset = MultiencoderTokenizedDataset(
         dataset=supset,
         encoders=sup_encs,
@@ -393,6 +405,8 @@ def main():
     opt = torch.optim.Adam(translator.parameters(), lr=cfg.lr, fused=False, betas=(0.5, 0.999))
     
     ######################################################################################
+    ## SETUP THE DISCRIMINATOR FOR THE UNSUPERVISED EMBEDIDNGS (UNSUP TO SUP):
+    ## DISCRIMINATES BETWEEN EMBEDDING u_i and f(u_i) 
     disc = Discriminator(
         latent_dim=translator.in_adapters[cfg.unsup_emb].in_dim,
         discriminator_dim=cfg.disc_dim,
@@ -404,6 +418,9 @@ def main():
     cfg.num_disc_params = sum(x.numel() for x in disc.parameters())
     print(f"Number of discriminator parameters:", cfg.num_disc_params)
     ######################################################################################
+    ## SETUP THE DISCRIMINATOR FOR THE SUPERVISED EMBEDIDNGS (SUP TO UNSUP):
+    ## DISCRIMINATES BETWEEN EMBEDDING v_i and g(v_i) 
+
     sup_disc = Discriminator(
         latent_dim=translator.in_adapters[cfg.sup_emb].in_dim,
         discriminator_dim=cfg.disc_dim, 
@@ -415,6 +432,8 @@ def main():
     print(f"Number of supervised discriminator parameters:", cfg.num_sup_disc_params)
     print(sup_disc)
     ######################################################################################
+    ## HERE THEY SET UP THE LATENT DISCIMINATOR. NOTICE THAT ITS ONLY 1 BECAUSE
+    ## OF THE COMMON SPACE
     latent_disc = Discriminator(
         latent_dim=cfg.d_adapter,
         discriminator_dim=cfg.disc_dim,
@@ -483,6 +502,9 @@ def main():
         gan_cls = RelativisticGAN
     else:
         raise ValueError(f"Unknown GAN style: {cfg.gan_style}")
+    
+    ## SETUP THE GANS: USE THE TRANSLATOR FUNCTION AS THE GENERATOR AND THE 
+    ##                 PREVIOUSLY INSTANTIED DISCRIMINATORS
     latent_gan = gan_cls(
         cfg=cfg,
         generator=translator,

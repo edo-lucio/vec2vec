@@ -1,0 +1,14 @@
+#!/bin/bash
+#SBATCH --job-name=vec2vec
+#SBATCH --array=0-1%1
+#SBATCH --gres=gpu        
+#SBATCH --partition=scavenge
+
+apptainer exec --nv -B /home/edlu/vec2vec/:/v2v vec.sif bash -c '
+micromamba run -n vec python -s pe.py \
+    --config e:1000,n:1000000,s:clap,u:e5 \
+    --dataset val \
+    --output plots \
+    --sup_emb clap \
+    --unsup_emb e5
+'

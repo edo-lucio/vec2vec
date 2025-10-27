@@ -8,5 +8,5 @@
 #SBATCH --partition=scavenge    # Run on scavenge queue (all nodes, low priority)
 
 apptainer exec --nv -B /home/edlu/vec2vec/:/v2v vec.sif bash -c "
-    micromamba run -n vec python -s /v2v/eval.py finetuning_unsupervised/e:1000,n:1000000,s:clap,u:e5 unsupervised
+    micromamba run -n vec python -s /v2v/eval.py finetuning_unsupervised/e:1000,n:1000000,s:clap,u:stella unsupervised
 "

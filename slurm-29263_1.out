@@ -1,0 +1,82 @@
+initializing <class 'torch.nn.modules.linear.Linear'>
+initializing <class 'torch.nn.modules.linear.Linear'>
+initializing <class 'torch.nn.modules.linear.Linear'>
+initializing <class 'torch.nn.modules.linear.Linear'>
+initializing <class 'torch.nn.modules.linear.Linear'>
+initializing <class 'torch.nn.modules.linear.Linear'>
+initializing <class 'torch.nn.modules.linear.Linear'>
+initializing <class 'torch.nn.modules.linear.Linear'>
+initializing <class 'torch.nn.modules.linear.Linear'>
+initializing <class 'torch.nn.modules.linear.Linear'>
+initializing <class 'torch.nn.modules.linear.Linear'>
+initializing <class 'torch.nn.modules.linear.Linear'>
+initializing <class 'torch.nn.modules.linear.Linear'>
+initializing <class 'torch.nn.modules.linear.Linear'>
+initializing <class 'torch.nn.modules.linear.Linear'>
+initializing <class 'torch.nn.modules.linear.Linear'>
+initializing <class 'torch.nn.modules.linear.Linear'>
+initializing <class 'torch.nn.modules.linear.Linear'>
+initializing <class 'torch.nn.modules.linear.Linear'>
+initializing <class 'torch.nn.modules.linear.Linear'>
+initializing <class 'torch.nn.modules.linear.Linear'>
+dict_keys(['e5_input_ids', 'e5_token_type_ids', 'e5_attention_mask', 'clap_input_ids', 'clap_attention_mask'])
+Traceback (most recent call last):
+  File "/opt/conda/envs/vec/lib/python3.11/site-packages/transformers/tokenization_utils_base.py", line 795, in convert_to_tensors
+    tensor = as_tensor(value)
+             ^^^^^^^^^^^^^^^^
+  File "/opt/conda/envs/vec/lib/python3.11/site-packages/transformers/tokenization_utils_base.py", line 742, in as_tensor
+    return torch.tensor(value, dtype=dtype)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: expected sequence of length 141 at dim 1 (got 136)
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/edlu/vec2vec/pe.py", line 183, in <module>
+    main()
+  File "/home/edlu/vec2vec/pe.py", line 179, in main
+    visualizer.plot_tsne(title_suffix=f"_{args.dataset}", output_dir=args.output)
+  File "/home/edlu/vec2vec/pe.py", line 98, in plot_tsne
+    embeddings_dict, latent_embeddings = self.compute_embeddings()
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/edlu/vec2vec/pe.py", line 78, in compute_embeddings
+    emb = encoder.encode(
+          ^^^^^^^^^^^^^^^
+  File "/home/edlu/vec2vec/utils/st_wrapper.py", line 112, in encode
+    inputs = self.processor(
+             ^^^^^^^^^^^^^^^
+  File "/opt/conda/envs/vec/lib/python3.11/site-packages/transformers/utils/deprecation.py", line 172, in wrapped_func
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/envs/vec/lib/python3.11/site-packages/transformers/models/clap/processing_clap.py", line 72, in __call__
+    return super().__call__(text=text, audio=audio, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/envs/vec/lib/python3.11/site-packages/transformers/processing_utils.py", line 594, in __call__
+    attribute_output = attribute(input_data, **kwargs[input_kwargs])
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/envs/vec/lib/python3.11/site-packages/transformers/tokenization_utils_base.py", line 2938, in __call__
+    encodings = self._call_one(text=text, text_pair=text_pair, **all_kwargs)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/envs/vec/lib/python3.11/site-packages/transformers/tokenization_utils_base.py", line 3026, in _call_one
+    return self.batch_encode_plus(
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/envs/vec/lib/python3.11/site-packages/transformers/tokenization_utils_base.py", line 3227, in batch_encode_plus
+    return self._batch_encode_plus(
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/envs/vec/lib/python3.11/site-packages/transformers/models/roberta/tokenization_roberta_fast.py", line 217, in _batch_encode_plus
+    return super()._batch_encode_plus(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/envs/vec/lib/python3.11/site-packages/transformers/tokenization_utils_fast.py", line 601, in _batch_encode_plus
+    return BatchEncoding(sanitized_tokens, sanitized_encodings, tensor_type=return_tensors)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/conda/envs/vec/lib/python3.11/site-packages/transformers/tokenization_utils_base.py", line 248, in __init__
+    self.convert_to_tensors(tensor_type=tensor_type, prepend_batch_axis=prepend_batch_axis)
+  File "/opt/conda/envs/vec/lib/python3.11/site-packages/transformers/tokenization_utils_base.py", line 811, in convert_to_tensors
+    raise ValueError(
+ValueError: Unable to create tensor, you should probably activate truncation and/or padding with 'padding=True' 'truncation=True' to have batched tensors with the same length. Perhaps your features (`input_ids` in this case) have excessive nesting (inputs type `list` where type `int` is expected).
+I1027 14:14:34.833000 1552900 site-packages/torch/_dynamo/eval_frame.py:563] TorchDynamo attempted to trace the following frames: [
+I1027 14:14:34.833000 1552900 site-packages/torch/_dynamo/eval_frame.py:563] 
+I1027 14:14:34.833000 1552900 site-packages/torch/_dynamo/eval_frame.py:563] ]
+I1027 14:14:34.839000 1552900 site-packages/torch/_dynamo/utils.py:845] TorchDynamo compilation metrics:
+I1027 14:14:34.839000 1552900 site-packages/torch/_dynamo/utils.py:845] Function    Runtimes (s)
+I1027 14:14:34.839000 1552900 site-packages/torch/_dynamo/utils.py:845] ----------  --------------
