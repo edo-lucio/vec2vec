@@ -30,3 +30,7 @@ notes.md
 *out
 logs
 y
+.cache
+.config
+.nv
+wandb*
