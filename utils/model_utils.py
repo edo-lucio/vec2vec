@@ -5,7 +5,6 @@ from sentence_transformers import SentenceTransformer, models
 from utils.st_wrapper import AudioSentenceTransformer
 
 MODEL_PATH = '/private/home/jxm/supervised_translation/model_weights/'
-# MODEL_PATH = "/home/rishi/code/data/model_weights/"
 
 HF_FLAGS = {
     'gtr': 'sentence-transformers/gtr-t5-base',
@@ -26,42 +25,37 @@ HF_FLAGS = {
     'modernbert-large': 'answerdotai/ModernBERT-large',
     'nomicbert': 'nomic-ai/nomic-bert-2048',
     'qwen': 'Qwen/Qwen3-Embedding-0.6B',
-    'clap': 'laion/clap-htsat-unfused',  
+    'clap': 'laion/clap-htsat-unfused',
 }
 
-def load_encoder(model_flag, device: str = 'cpu', mixed_precision: Optional[str] = None):
-    f = HF_FLAGS.get(model_flag, model_flag)
+def load_encoder(model_flag: str, device: str = 'cpu', mixed_precision: Optional[str] = None):
+    model_id = HF_FLAGS.get(model_flag, model_flag)
 
-    model_kwargs = {}
-    if mixed_precision is not None:
-        if mixed_precision == 'bf16':
-            model_kwargs['torch_dtype'] = torch.bfloat16
-        elif mixed_precision == 'fp16':
-            model_kwargs['torch_dtype'] = torch.float16
-        elif mixed_precision == 'no':
-            model_kwargs['torch_dtype'] = torch.float32
-        else:
-            raise ValueError(f"Unknown mixed precision flag {mixed_precision}")
-    else:
-        model_kwargs['torch_dtype'] = torch.float32
-    
+    # Setup dtype for mixed precision
+    dtype_map = {'bf16': torch.bfloat16, 'fp16': torch.float16, 'no': torch.float32}
+    model_kwargs = {'torch_dtype': dtype_map.get(mixed_precision, torch.float32)}
 
-    # special loading for gpt-2
+    # Special handling for GPT-2 variants
     if model_flag.startswith("gpt2"):
-        print(f"Loading gpt-2 model {model_flag}")
         transformer = models.Transformer("sentence-transformers/all-MiniLM-L6-v2", max_seq_length=256)
         normalize = models.Normalize()
-        if model_flag == "gpt2_mean":
-            pooling = models.Pooling(transformer.get_word_embedding_dimension(), pooling_mode="mean")
-        elif model_flag == "gpt2_last":
-            pooling = models.Pooling(transformer.get_word_embedding_dimension(), pooling_mode="lasttoken")
-        else:
-            raise ValueError(f"Unknown gpt-2 model {model_flag}")
+        pooling_mode = "mean" if model_flag == "gpt2_mean" else "lasttoken"
+        pooling = models.Pooling(transformer.get_word_embedding_dimension(), pooling_mode=pooling_mode)
         encoder = SentenceTransformer(modules=[transformer, pooling, normalize])
+
+    # Special handling for CLAP (audio-text)
     elif model_flag.startswith("clap"):
-        encoder = AudioSentenceTransformer(f)
+        encoder = AudioSentenceTransformer(model_id)
+
+    # Special handling for CLIP text embeddings
+    elif model_flag.startswith("clip"):
+        # Load SentenceTransformer CLIP model (text encoder works automatically for text)
+        encoder = SentenceTransformer(model_id, device=device, trust_remote_code=True, model_kwargs=model_kwargs)
+
+    # Default case: load any Hugging Face/SentenceTransformer model
     else:
-        encoder = SentenceTransformer(f, device=device, trust_remote_code=True, model_kwargs=model_kwargs)
+        encoder = SentenceTransformer(model_id, device=device, trust_remote_code=True, model_kwargs=model_kwargs)
+
     return encoder.eval()
 
 

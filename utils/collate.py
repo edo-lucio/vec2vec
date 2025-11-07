@@ -91,23 +91,50 @@ class MultiencoderTokenizedDataset(torch.utils.data.Dataset):
 
         ex_text = self.dataset[int(self.new_indices[idx])]["text"]
         ex_text = ex_text[:_max_num_chars]
+
         output = {}
         for tok_name in tok_names:
-            # here tokenizes the text
-            tt = self.tokenizers[tok_name](
-                ex_text,
-                truncation=True,
-                padding="max_length",
-                max_length=max_length,
-                return_tensors="pt",
-            )
-            if tok_name == 'clip':
+            tokenizer = self.tokenizers[tok_name]
+
+            # --- Handle CLIP text correctly ---
+            if tok_name.startswith("clip"):
+                # Use CLIP's text tokenizer instead of image processor
+                if hasattr(tokenizer, "tokenizer"):  # SentenceTransformer(CLIP) case
+                    tt = tokenizer.tokenizer(
+                        ex_text,
+                        truncation=True,
+                        padding="max_length",
+                        max_length=max_length,
+                        return_tensors="pt",
+                    )
+                else:
+                    # fallback: standard text encoding (for safety)
+                    tt = tokenizer(
+                        ex_text,
+                        truncation=True,
+                        padding="max_length",
+                        max_length=max_length,
+                        return_tensors="pt",
+                    )
                 tt["image_text_info"] = torch.tensor(1)
 
+            else:
+                # --- Normal text encoders (E5, GTE, etc.) ---
+                tt = tokenizer(
+                    ex_text,
+                    truncation=True,
+                    padding="max_length",
+                    max_length=max_length,
+                    return_tensors="pt",
+                )
+
+            # Flatten for batching
             output.update({f"{tok_name}_{key}": value for key, value in tt.items()})
-        
-        if "token_name_idxs" in output: output.pop("token_name_idxs")
-        return { k: v.flatten() for k,v in output.items()}
+
+        if "token_name_idxs" in output:
+            output.pop("token_name_idxs")
+
+        return {k: v.flatten() for k, v in output.items()}
 
 
 class MultiEncoderClassificationDataset(MultiencoderTokenizedDataset):
