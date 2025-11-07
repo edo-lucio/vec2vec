@@ -50,12 +50,8 @@ def main():
     assert hasattr(cfg, 'unsup_emb')
     assert cfg.sup_emb != cfg.unsup_emb
 
-    unsup_enc = {
-        cfg.unsup_emb: load_encoder(cfg.unsup_emb, mixed_precision=cfg.mixed_precision if hasattr(cfg, 'mixed_precision') else None)
-    }
-    unsup_dim = {
-        cfg.unsup_emb: get_sentence_embedding_dimension(unsup_enc[cfg.unsup_emb])
-    }
+    unsup_enc = {cfg.unsup_emb: load_encoder(cfg.unsup_emb, mixed_precision=cfg.mixed_precision if hasattr(cfg, 'mixed_precision') else None)}
+    unsup_dim = {cfg.unsup_emb: get_sentence_embedding_dimension(unsup_enc[cfg.unsup_emb])}
     translator.add_encoders(unsup_dim, overwrite_embs=[cfg.unsup_emb])
 
     assert cfg.unsup_emb not in sup_encs
@@ -86,6 +82,7 @@ def main():
         max_length=cfg.max_seq_length,
         seed=cfg.sampling_seed,
     )
+    
     evalloader = DataLoader(
         evalset,
         batch_size=cfg.val_bs if hasattr(cfg, 'val_bs') else cfg.bs,
@@ -103,7 +100,6 @@ def main():
     translator.load_state_dict(torch.load(f'{argv[1]}/model.pt', map_location='cpu'), strict=False)
     translator = accelerator.prepare(translator)
 
-
     ALPHA = 0.7
     WIDTH = 0.5
     C1 = '#008080'
@@ -115,8 +111,8 @@ def main():
 
         ins = process_batch(batch, {**sup_encs, **unsup_enc}, cfg.normalize_embeddings, accelerator.device)
         _, _, reps = translator(ins, include_reps=True)
-        print(reps[cfg.sup_emb].shape)
-        print(reps[cfg.unsup_emb].shape)
+        print(cfg.sup_emb, ins[cfg.sup_emb].shape)
+        print(cfg.unsup_emb, ins[cfg.unsup_emb].shape)
         print("Latents", torch.nn.functional.cosine_similarity(reps[cfg.sup_emb], reps[cfg.unsup_emb]).mean())
         print("Inputs", torch.nn.functional.cosine_similarity(ins[cfg.sup_emb], ins[cfg.unsup_emb]).mean())
 

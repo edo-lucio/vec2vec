@@ -7,15 +7,7 @@
 
 nvidia-smi
 
-clap_model="clip"
-model="clap"
-
 apptainer exec --nv -B /home/edlu/vec2vec/:/v2v vec_image.sif bash -c "
     export HOME=/v2v/.cache/job_${SLURM_JOB_ID}_$(printf "%x" $SLURM_ARRAY_TASK_ID)
-    micromamba run -n vec wandb login $WANDB_TOKEN
-    micromamba run -n vec python -s /v2v/train.py unsupervised \
-        --epochs 100 \
-        --num_points 1000000 \
-        --sup_emb $clap_model \
-        --unsup_emb $model
+    micromamba run -n vec python -s /v2v/universal.py finetuning_unsupervised/e:100,n:1000000,s:clap,u:e5
 "

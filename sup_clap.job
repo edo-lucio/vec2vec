@@ -1,15 +1,31 @@
 #!/bin/bash
 #SBATCH --job-name=vec2vec
-#SBATCH --output=logs/%A.out
+#SBATCH --output=logs/%A_%a.out
 #SBATCH --time=1-00:00:00
-#SBATCH --gres=gpu
-#SBATCH --partition=scavenge
+#SBATCH --array=0-6%6
+#SBATCH --gres=gpu:a100_40gb:1
+#SBATCH --partition=acltr
 
 nvidia-smi
 
-clap_model="clip"
-model="clap"
+# List of unsupervised models
+models=(
+    "granite"
+    "gtr"
+    "gte"
+    "stella"
+    "e5"
+    "clip"
+)
 
+clap_model="clap"
+
+# Select model based on SLURM array task ID
+unsup_idx=$SLURM_ARRAY_TASK_ID
+model=${models[$unsup_idx]}
+sup=$clap_model
+
+# Run training inside the container
 apptainer exec --nv -B /home/edlu/vec2vec/:/v2v vec_image.sif bash -c "
     export HOME=/v2v/.cache/job_${SLURM_JOB_ID}_$(printf "%x" $SLURM_ARRAY_TASK_ID)
     micromamba run -n vec wandb login $WANDB_TOKEN

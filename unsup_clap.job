@@ -1,12 +1,12 @@
 #!/bin/bash
 #SBATCH --job-name=vec2vec
 #SBATCH --output=logs/%A_%a.out
-#SBATCH --time=3-00:00:00
+#SBATCH --time=1-00:00:00
 #SBATCH --array=0-6%6
-#SBATCH --gres=gpu:v100:1         
+#SBATCH --gres=gpu:a100_40gb:1
 #SBATCH --partition=acltr
 
-nvidia-smi 
+nvidia-smi
 
 models=(
     "granite"
@@ -23,8 +23,10 @@ unsup_idx=$SLURM_ARRAY_TASK_ID
 model=${models[$unsup_idx]}
 sup=$clap_model
 
-apptainer exec --nv -B /home/edlu/vec2vec/:/v2v vec.sif bash -c "
-    export $WANDB_TOKEN
+apptainer exec --nv -B /home/edlu/vec2vec/:/v2v vec_image.sif bash -c "
+    export HF_HUB_HTTP_TIMEOUT=60
+    export HOME=/v2v/.cache/job_${SLURM_JOB_ID}_$(printf "%x" $SLURM_ARRAY_TASK_ID)
+    micromamba run -n vec wandb login $WANDB_TOKEN
     micromamba run -n vec python -s /v2v/train.py unsupervised \
         --epochs 100 \
         --num_points 1000000 \

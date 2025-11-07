@@ -11,7 +11,8 @@ for d in finetuning_unsupervised/*/; do
     echo "Running eval on $folder_name"
 
     apptainer exec --nv -B /home/edlu/vec2vec/:/v2v vec_image.sif bash -c "
-        export HOME=/v2v/.cache/job_${SLURM_JOB_ID}_${folder_name}
-        micromamba run -n vec python -s /v2v/eval.py finetuning_unsupervised/${folder_name} unsupervised
+        export HOME=/v2v/.cache/job_baseline${SLURM_JOB_ID}_${folder_name}
+        micromamba run -n vec conda install conda-forge::pot \ 
+            python -s /v2v/ot_baseline.py finetuning_unsupervised/${folder_name} unsupervised
     "
 done

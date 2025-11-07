@@ -2,13 +2,11 @@
 #SBATCH --job-name=vec2vec
 #SBATCH --output=logs/%A.out
 #SBATCH --time=1-00:00:00
-#SBATCH --gres=gpu
-#SBATCH --partition=scavenge
+#SBATCH --gres=gpu:a100_40gb:1
+#SBATCH --partition=acltr
 
-nvidia-smi
-
-clap_model="clip"
-model="clap"
+clap_model="clap"
+model="gte"
 
 apptainer exec --nv -B /home/edlu/vec2vec/:/v2v vec_image.sif bash -c "
     export HOME=/v2v/.cache/job_${SLURM_JOB_ID}_$(printf "%x" $SLURM_ARRAY_TASK_ID)
