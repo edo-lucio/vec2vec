@@ -222,9 +222,9 @@ def training_loop_(
 
 def main():
     os.environ["TOKENIZERS_PARALLELISM"] = "0"
-    # ssl certificate 
     os.environ['SSL_CERT_DIR'] = '/etc/ssl/certs'
     os.environ['REQUESTS_CA_BUNDLE'] = '/etc/ssl/certs/ca-certificates.crt'
+    os.environ["HF_HUB_HTTP_TIMEOUT"] = "120"
     
     # read configs
     cfg = toml.load(f'configs/{argv[1]}.toml') 
@@ -267,14 +267,10 @@ def main():
     print("Running Experiment:", cfg.wandb_name)
 
     ## LOAD EMBEDDINGS
-    sup_encs = {
-        cfg.sup_emb: load_encoder(cfg.sup_emb, mixed_precision=cfg.mixed_precision if hasattr(cfg, 'mixed_precision') else None)
-    }
-    encoder_dims = {
-        cfg.sup_emb: get_sentence_embedding_dimension(sup_encs[cfg.sup_emb])
-    }
+    print(cfg.sup_emb)
+    sup_encs = { cfg.sup_emb: load_encoder(cfg.sup_emb, mixed_precision=cfg.mixed_precision if hasattr(cfg, 'mixed_precision') else None) }
+    encoder_dims = { cfg.sup_emb: get_sentence_embedding_dimension(sup_encs[cfg.sup_emb]) }
     translator = load_n_translator(cfg, encoder_dims)
-
     model_save_dir = os.path.join(save_dir, 'model.pt')
     disc_save_dir = os.path.join(save_dir, 'disc.pt')
 
@@ -282,19 +278,15 @@ def main():
 
     assert hasattr(cfg, 'unsup_emb')
     assert cfg.sup_emb != cfg.unsup_emb
-
-    unsup_enc = {
-        cfg.unsup_emb: load_encoder(cfg.unsup_emb, mixed_precision=cfg.mixed_precision if hasattr(cfg, 'mixed_precision') else None)
-    }
-    unsup_dim = {
-        cfg.unsup_emb: get_sentence_embedding_dimension(unsup_enc[cfg.unsup_emb])
-    }
+    
+    print(cfg.unsup_emb)
+    unsup_enc = { cfg.unsup_emb: load_encoder(cfg.unsup_emb, mixed_precision=cfg.mixed_precision if hasattr(cfg, 'mixed_precision') else None) }
+    unsup_dim = { cfg.unsup_emb: get_sentence_embedding_dimension(unsup_enc[cfg.unsup_emb]) }
     translator.add_encoders(unsup_dim, overwrite_embs=[cfg.unsup_emb])
 
     assert cfg.unsup_emb not in sup_encs
     assert cfg.unsup_emb in translator.in_adapters
     assert cfg.unsup_emb in translator.out_adapters
-    ## END LOAD EMBEDDINGS
 
     cfg.num_params = sum(x.numel() for x in translator.parameters())
     print("Number of parameters:", cfg.num_params)
@@ -311,7 +303,6 @@ def main():
     num_workers = min(get_num_proc(), 8)
     ## LOAD DATASET EMBEDDINGS
     if cfg.dataset != 'mimic':
-
         ## NOTE:  the following load_streaming_embedding function doesnt actually load embeddings
         ##        but just the dataset in a torch compatible format
         dset = load_streaming_embeddings(cfg.dataset)
@@ -340,7 +331,6 @@ def main():
         supset = supset.remove_columns([col for col in supset.column_names if col != 'text'])
         unsupset = unsupset.remove_columns([col for col in unsupset.column_names if col != 'text'])
         valset = valset.remove_columns([col for col in valset.column_names if col != 'text'])
-        
 
     ## COLLATE 
     supset = MultiencoderTokenizedDataset(
@@ -402,7 +392,16 @@ def main():
         )
         valloader = accelerator.prepare(valloader)
 
-    opt = torch.optim.Adam(translator.parameters(), lr=cfg.lr, fused=False, betas=(0.5, 0.999))
+    trainable_params = list(translator.parameters())
+
+    for enc in sup_encs.values():
+        if hasattr(enc, "adapter"):
+            trainable_params += [p for p in enc.adapter.parameters() if p.requires_grad]
+    for enc in unsup_enc.values():
+        if hasattr(enc, "adapter"):
+            trainable_params += [p for p in enc.adapter.parameters() if p.requires_grad]
+
+    opt = torch.optim.Adam(trainable_params, lr=cfg.lr, betas=(0.5, 0.999))
     
     ######################################################################################
     ## SETUP THE DISCRIMINATOR FOR THE UNSUPERVISED EMBEDIDNGS (UNSUP TO SUP):
