@@ -192,6 +192,7 @@ def main():
 
         # Save
         plt.tight_layout()
+        os.makedirs('results_universal', exist_ok=True)
         plt.savefig(f'results_universal/universal_{cfg.unsup_emb}_{cfg.sup_emb}.png', dpi=300, bbox_inches='tight')
         plt.clf()
         print('Saved plot to universal.png')

@@ -8,6 +8,8 @@
 
 nvidia-smi
 
+export WANDB_TOKEN=51dff9024eb70e6ad08a91fec9cee35edf7822bb
+
 models=(
     "granite"
     "gtr"

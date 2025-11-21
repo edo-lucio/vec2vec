@@ -28,9 +28,11 @@ notes.md
 *tar
 *sif
 *out
-logs
+logs/
 y
 .cache
 .config
 .nv
 wandb*
+*png
+similarities/

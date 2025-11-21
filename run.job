@@ -5,8 +5,8 @@
 #SBATCH --gres=gpu:a100_40gb:1
 #SBATCH --partition=acltr
 
-clap_model="clap"
-model="gte"
+clap_model="clip"
+model="clap"
 
 apptainer exec --nv -B /home/edlu/vec2vec/:/v2v vec_image.sif bash -c "
     export HOME=/v2v/.cache/job_${SLURM_JOB_ID}_$(printf "%x" $SLURM_ARRAY_TASK_ID)

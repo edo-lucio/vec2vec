@@ -77,10 +77,20 @@ def load_streaming_embeddings(
         dset = load_dataset("BeIR/msmarco", "corpus", streaming=streaming, num_proc=8)["corpus"]
     elif dataset_name == "msmarco-queries":
         dset = load_dataset("BeIR/msmarco", "queries", streaming=streaming, num_proc=8)["queries"]
-    elif dataset_name == "retrieval":
+    elif dataset_name in ["retrieval", "nomic"]:
         dset = _load_retrieval_dataset()
+    elif dataset_name in ["laion"]:
+        dset = load_dataset(
+            "laion/laion2B-en",
+            split=split_flag,
+            streaming=streaming,
+            num_proc=8,
+            keep_in_memory=False
+        )
+        dset = dset.filter(lambda x: x.get("TEXT") is not None)
+        dset = dset.rename_column("TEXT", "text")
     else:
-        raise NotImplementedError()
+        raise NotImplementedError(f"Dataset {dataset_name} not supported")
 
     return dset.with_format("torch")
 

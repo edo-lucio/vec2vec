@@ -149,7 +149,7 @@ def training_loop_(
                 + (rec_loss * cfg.loss_coefficient_rec)
                 + (reverse_rec_loss * cfg.loss_coefficient_reverse_rec)
                 + (vsp_loss * cfg.loss_coefficient_vsp)
-                + (cc_vsp_loss * cfg.loss_coefficient_cc_vsp)
+                + (cc_vsp_loss * cfg.loss_coefficient_cc_vsp) # possibly tweak the coefficient to make it accomodate better the transormation of the others
                 + (cc_rec_loss * cfg.loss_coefficient_cc_rec)
                 + (cc_trans_loss * cfg.loss_coefficient_cc_trans)
                 + (gen_loss * cfg.loss_coefficient_gen)

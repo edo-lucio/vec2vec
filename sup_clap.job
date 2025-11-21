@@ -15,10 +15,10 @@ models=(
     "gte"
     "stella"
     "e5"
-    "clip"
+    "clap"
 )
 
-clap_model="clap"
+clap_model="clip"
 
 # Select model based on SLURM array task ID
 unsup_idx=$SLURM_ARRAY_TASK_ID
