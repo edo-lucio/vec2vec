@@ -2,73 +2,72 @@ import json
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
-from pathlib import Path
 
 
-def load_data(json_path: str) -> pd.DataFrame:
-    path = Path(json_path)
-    if not path.exists():
-        raise FileNotFoundError(f"File not found: {json_path}")
+def load_data(json_path: str):
+    asis_rows = []
+    isas_rows = []
 
-    with open(path, "r") as f:
-        data = json.load(f)
+    with open(json_path, 'r', encoding='utf-8') as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+
+            obj = json.loads(line)
+
+            u = obj["unsup_pre_translation"]
+            s = obj["sup_pre_translation"]
+
+            if u >= 0.85 and s <= 0.75:
+                obj["sup_gain"] = obj["sup_translated"] - obj["sup_pre_translation"]
+                asis_rows.append(obj)
+                continue
+
+            if u <= 0.75 and s >= 0.85:
+                obj["sup_gain"] = obj["sup_translated"] - obj["sup_pre_translation"]
+                isas_rows.append(obj)
+
+    df_asis = pd.DataFrame(asis_rows)
+    df_isas = pd.DataFrame(isas_rows)
+
+    return df_asis, df_isas
+
+
+def plot(df_asis: pd.DataFrame, df_isas: pd.DataFrame, save_path: str = None):
+    plt.figure(figsize=(8, 5))
     
-    df = pd.DataFrame.from_dict(data, orient="index")
-    df = df[(df["unsup_pre_translation"] <= 0.6) & (df["sup_pre_translation"] >= 0.85)]
-    df["mode_information_gain"] = df["sup_pre_translation"] - df["unsup_pre_translation"] # e.g. audio-level similarity - text-level sim (the bigger the more translation should make text-level bigger)
-    # WARNING: looking at the cos metrics in the paper it actually represents the similarity between F(x_i) and x_i. therefore the below quantity must tend to 0
-    # for example in this case: df["unsup_translated"] - df["unsup_pre_translation"] you would be subtracting to similar quantities.
-    # this i argue could happen if the two models share some training data. 
-    # maybe check if clap and gte do. 
-    # but then, which metric shuold we use ? should we only keep unsup_translated ? 
-
-    df["unsup_translation_gain"] = df["unsup_translated"] - df["unsup_pre_translation"]
-
-    print(df.shape)
-    return df
-
-def plot(df: pd.DataFrame, save_path: str = None):
-    # Compute Pearson correlation
-    pearson_r = df["mode_information_gain"].corr(df["unsup_translation_gain"])
-
-    # Create plot
-    plt.figure(figsize=(7, 5))
-    sns.scatterplot(
-        data=df,
-        x="mode_information_gain",
-        y="unsup_translation_gain",
-        s=80,
-        color="blue",
+    print(df_asis.shape, df_isas.shape)
+    
+    df_combined = pd.concat([
+        df_asis.assign(Source="ASIS"),
+        df_isas.assign(Source="ISAS")
+    ])
+    
+    sns.histplot(
+        data=df_combined,
+        x="sup_gain",
+        hue="Source",        
+        stat="density",      
+        common_norm=False,   
+        element="step",     
+        alpha=0.3,           
+        kde=True             
     )
-
-    # Add regression line
-    sns.regplot(
-        data=df,
-        x="mode_information_gain",
-        y="unsup_translation_gain",
-        scatter=False,
-        color="red",
-        ci=None,
-        line_kws={"linestyle": "--"},
-    )
-
-    # Titles and labels
-    plt.title(f"Unsupervised Translation Gain vs Mode Information Gain\nPearson r = {pearson_r:.3f}")
-    plt.xlabel("mode_information_gain (supervised - unsupervised pre-translation)")
-    plt.ylabel("unsup_translation_gain (unsup translated - unsup pre-translation)")
-    plt.grid(True, linestyle="--", alpha=0.4)
-
-    # Save or show
+    
+    plt.title("Normalized Distribution of sup_gain (Fair Comparison)")
+    plt.xlabel("Sup Gain")
+    plt.ylabel("Density")
+    
     if save_path:
         print(f"Saving plot to: {save_path}")
         plt.savefig(save_path, bbox_inches="tight", dpi=300)
     else:
         plt.show()
 
-
 def main(json_path: str, save_path: str = "image.png"):
-    df = load_data(json_path)
-    plot(df, save_path)
+    asis, isas = load_data(json_path)
+    plot(asis, isas, save_path)
 
 
 if __name__ == "__main__":
